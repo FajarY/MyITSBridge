@@ -1,6 +1,6 @@
 namespace MyITSBridge
 {
-    public class Controller
+    public abstract class Controller
     {
         //Composite
         protected Dictionary<string, Controller> childs = new Dictionary<string, Controller>();

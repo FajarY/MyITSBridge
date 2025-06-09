@@ -1,4 +1,5 @@
 using System.Collections.Specialized;
+using System.Reflection;
 using System.Web;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -17,6 +18,17 @@ namespace MyITSBridge
 
             entrypoint = new MainController();
 
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            Type[] types = assembly.GetTypes();
+            foreach (Type type in types)
+            {
+                if (type.Namespace == "MyITSBridge.Models" && type.IsSubclassOf(typeof(Model)))
+                {
+                    Model model = (Model)Activator.CreateInstance(type);
+                    model.Initialize();
+                }
+            }
+
             app.MapGet("/{**catchall}", ProcessRequest);
             app.MapPost("/{**catchall}", ProcessRequest);
             app.MapPut("/{**catchall}", ProcessRequest);
@@ -24,9 +36,9 @@ namespace MyITSBridge
 
             app.Run();
         }
-        public static IResult ProcessRequest(HttpRequest request)
+        public static IResult ProcessRequest(HttpContext context)
         {
-            Uri uri = new Uri(request.GetDisplayUrl());
+            Uri uri = new Uri(context.Request.GetDisplayUrl());
 
             Queue<string> paths = new Queue<string>();
             foreach (string str in uri.Segments)
@@ -40,7 +52,7 @@ namespace MyITSBridge
                 paths.Dequeue();
             }
 
-            RequestHandle handle = new RequestHandle(uri, request, Results.NotFound(), paths);
+            RequestHandle handle = new RequestHandle(uri, context.Request, Results.NotFound(), paths, context);
             entrypoint.ProcessRequest(handle);
 
             return handle.response;
